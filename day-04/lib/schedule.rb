@@ -1,9 +1,11 @@
+require 'ostruct'
+
 class Schedule
   attr_reader :input
   attr_reader :guards
 
   def initialize
-    @guards = {}
+    @guards = []
   end
 
   def read_file(path)
@@ -11,16 +13,18 @@ class Schedule
   end
 
   def log_sleep(guard_id, asleep_at, awake_at)
-    unless @guards.has_key?(guard_id)
-      @guards[guard_id] = { slept: 0 }
+    if @guards.select { |g| g.id == guard_id }.empty?
+      @guards << OpenStruct.new(id: guard_id, slept: 0, sleep_minutes: Hash.new(0))
     end
 
-    @guards[guard_id][:slept] += (awake_at - asleep_at) || 0
-    @guards[guard_id][:sleep_minutes] ||= Hash.new(0)
+    index = @guards.index { |g| g.id == guard_id }
+    guard = @guards[index]
+    guard.slept += (awake_at - asleep_at) || 0
 
     (asleep_at...awake_at).each do |min|
-      @guards[guard_id][:sleep_minutes][min] += 1
+      guard.sleep_minutes[min] += 1
     end
+    @guards[index] = guard
   end
 
   def parse_activity(record)
@@ -39,7 +43,7 @@ class Schedule
     @input.each do |record|
       activity = parse_activity(record)
       if activity[:guard]
-        guard_id = activity[:guard]
+        guard_id = activity[:guard].to_i
       else
         if activity[:activity] == "falls asleep"
           asleep_at = activity[:minute].to_i
@@ -54,24 +58,22 @@ class Schedule
   def max_sleeper
     max = 0
     sleeper = nil
-    data = nil
 
-    @guards.each do |k,v|
-      if v[:slept] > max
-        max = v[:slept]
-        sleeper = k
-        data = v
+    @guards.each do |g|
+      if g.slept > max
+        max = g.slept
+        sleeper = g
       end
     end
 
-    {sleeper => data}
+    sleeper
   end
 
   def sleepiest_minute
     times = -1
     minute = nil
 
-    max_sleeper.first.last[:sleep_minutes].each do |k,v|
+    max_sleeper.sleep_minutes.each do |k,v|
       if v > times
         times = v
         minute = k
@@ -82,7 +84,7 @@ class Schedule
   end
 
   def answer
-    id = max_sleeper.first.first.to_i
+    id = max_sleeper.id
     id * sleepiest_minute
   end
 end

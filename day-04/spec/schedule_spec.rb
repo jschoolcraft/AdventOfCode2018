@@ -27,8 +27,8 @@ RSpec.describe Schedule do
     s.read_file('sample.txt')
     s.parse_logs
 
-    expect(s.guards).to include({"10"=>include({:slept=>50})})
-    expect(s.guards).to include({"99"=>include({:slept=>30})})
+    expect(s.guards.index { |g| g.id == 10 && g.slept == 50}).not_to be_nil
+    expect(s.guards.index { |g| g.id == 99 && g.slept == 30}).not_to be_nil
   end
 
   it "should parse a single record" do
@@ -59,7 +59,8 @@ RSpec.describe Schedule do
     s.read_file('sample.txt')
     s.parse_logs
 
-    expect(s.max_sleeper).to include({"10"=>include({:slept=>50})})
+    expect(s.max_sleeper.id).to eq(10)
+    expect(s.max_sleeper.slept).to eq(50)
   end
 
   it "should find the sleepiest minute" do
