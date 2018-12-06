@@ -69,22 +69,44 @@ class Schedule
     sleeper
   end
 
-  def sleepiest_minute
+  def sleepiest_minute(guard)
     times = -1
     minute = nil
 
-    max_sleeper.sleep_minutes.each do |k,v|
+    guard.sleep_minutes.each do |k,v|
       if v > times
         times = v
         minute = k
       end
     end
 
-    minute
+    { minute: minute, times: times }
   end
 
-  def answer
+  def most_consistent_guard
+    times = -1
+    guard = nil
+
+    @guards.each do |g|
+      h = sleepiest_minute(g)
+      minute = h[:minute]
+      t = h[:times]
+
+      if t > times
+        times = t
+        guard = g
+      end
+    end
+    guard
+  end
+
+  def part1_answer
     id = max_sleeper.id
-    id * sleepiest_minute
+    id * sleepiest_minute(max_sleeper)[:minute]
+  end
+
+  def part2_answer
+    guard = most_consistent_guard
+    guard.id * sleepiest_minute(guard)[:minute]
   end
 end
